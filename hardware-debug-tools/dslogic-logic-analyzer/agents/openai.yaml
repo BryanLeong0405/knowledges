@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSLogic Logic Analyzer"
+  short_description: "DSLogic PLus CLI capture, .dsl bit-packed parsing, exit codes"
+  default_prompt: "Use $dslogic-logic-analyzer to capture with dslogic-capture.sh, parse .dsl bit-packed samples, and cross-check with an oscilloscope."

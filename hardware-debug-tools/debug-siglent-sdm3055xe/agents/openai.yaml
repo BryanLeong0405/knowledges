@@ -1,0 +1,4 @@
+interface:
+  display_name: "调试SDM3055X-E"
+  short_description: "SDM3055X-E WinUSB、USBTMC 与 SCPI 只读调试"
+  default_prompt: "Use $debug-siglent-sdm3055xe to diagnose the current SDM3055X-E through Windows WinUSB, USBTMC, and safe SCPI queries."

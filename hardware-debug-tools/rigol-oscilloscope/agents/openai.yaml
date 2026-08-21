@@ -1,0 +1,4 @@
+interface:
+  display_name: "RIGOL Oscilloscope"
+  short_description: "RIGOL MSO5072 SCPI/TCP 5555 remote measurement"
+  default_prompt: "Use $rigol-oscilloscope to read RIGOL MSO5072 measurements and waveforms over SCPI/TCP 5555, following the NORM mode, threshold, and close() rules."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "调试IT8511A"
+  short_description: "IT8511A+ 电子负载 CH340 直连 DB9 串口协议调试与安全控制"
+  default_prompt: "Use $debug-itech-it8511a to directly talk to an ITECH IT8511A+ electronic load over its DB9 serial port (CH340 USB-serial adapter) with 26-byte binary frames or SCPI via Python/pyserial - no HTTP controller or EXE service required."

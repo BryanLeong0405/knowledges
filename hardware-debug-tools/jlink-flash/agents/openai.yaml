@@ -1,0 +1,4 @@
+interface:
+  display_name: "J-Link Flash & Debug"
+  short_description: "J-Link flashing, RTT debug, and Commander commands for N32H787/STM32H7"
+  default_prompt: "Use $jlink-flash to flash, read back, erase, or RTT-debug N32H787/STM32H7 targets with correct device name, loadfile sequence, noreset recovery for RAMCode timeouts, and RTT ring-buffer reading."

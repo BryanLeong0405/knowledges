@@ -1,0 +1,4 @@
+interface:
+  display_name: "调试IT6722A"
+  short_description: "IT6722A USBTMC、SCPI 与安全状态调试"
+  default_prompt: "Use $debug-itech-it6722a to diagnose and safely query an ITECH IT6722A through Windows WinUSB, USBTMC, and SCPI."

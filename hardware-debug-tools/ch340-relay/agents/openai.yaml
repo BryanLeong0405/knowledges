@@ -1,0 +1,4 @@
+interface:
+  display_name: "CH340 四路继电器"
+  short_description: "CH340 四路继电器(LCUS)控制:CH1 供电/CH2 BOOT/CH3-4 扩展"
+  default_prompt: "Use $ch340-relay to control the CH340 4-channel relay module (CH1 power, CH2 BOOT, CH3/4 spare for NRST etc.) via ch340_4relay_control.sh over USB serial."
