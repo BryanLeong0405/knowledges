@@ -1,0 +1,4 @@
+interface:
+  display_name: "USB摄像头抓帧"
+  short_description: "USB UVC 摄像头实时帧获取:usbipd 所有权切换、WSL V4L2 与 Windows DirectShow 抓帧、MJPG 帧率优化"
+  default_prompt: "Use $debug-usb-webcam to capture real-time frames from a USB UVC webcam on a Windows + WSL2 host: enumerate with usbipd, attach/detach ownership, grant /dev/video* access in WSL, capture with OpenCV V4L2 or DirectShow, and optimize frame rate with MJPG."
