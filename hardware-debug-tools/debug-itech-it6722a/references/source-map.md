@@ -2,9 +2,7 @@
 
 ## Local evidence and implementation
 
-- Specification: `specs/debug-itech-it6722a.md`
 - Probe: `scripts/it6722a_usbtmc_probe.ps1`（本技能目录）
-- Pure protocol test: `tests/test_itech_it6722a_probe.ps1`
 - Current enumeration: `usbipd list`
 - Current registry root: `HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_2EC7&PID_6700`（易变，运行时动态发现）
 
@@ -27,4 +25,4 @@ Firmware 1.03-1.04
 - [ITECH IT6700 programming guide](https://www.itechate.com/uploadfiles/%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/user%20manual/it6700h/IT6700%20Programming%20Guide-CN.pdf)
 - [ITECH IT6722(A) product note](https://www.itechate.com/en/info_174.aspx?itemid=855&lcid=)
 
-The official documentation identifies IT6722A as an 80 V / 20 A / 400 W supply with USB/RS232 communication, USB488/USBTMC support, and SCPI programming. The USB path in this skill is the verified Windows WinUSB path; the earlier CH340/COM87 RS232 path is not part of this package.
+The official documentation identifies IT6722A as an 80 V / 20 A / 400 W supply with USB/RS232 communication, USB488/USBTMC support, and SCPI programming. The USB path in this skill is the verified Windows WinUSB path; the earlier CH340/COMx RS232 path is not part of this package.

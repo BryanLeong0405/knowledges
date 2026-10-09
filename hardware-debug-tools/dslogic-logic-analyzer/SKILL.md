@@ -5,7 +5,7 @@ description: DSLogic PLus 逻辑分析仪的 CLI 采样、解析与交叉验证�
 
 # DSLogic PLus 逻辑分析仪 CLI
 
-用于 DSLogic PLus 逻辑分析仪 CLI（本技能目录）这套知识。完整主文档：《DSLogic_CLI_调用说明与技术细节.md》（13 章）。
+用于 DSLogic PLus 逻辑分析仪 CLI（本技能目录）这套知识。完整主文档（13 章调用说明与技术细节）随 CLI 交付包提供，不随本技能分发。
 
 ## 先确认环境
 

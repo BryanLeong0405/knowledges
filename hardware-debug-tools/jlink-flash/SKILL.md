@@ -1,11 +1,11 @@
 ---
 name: jlink-flash
-description: J-Link 烧录与调试技能(通用 + N32H787/STM32H7 实测)。用于固件烧录/读回/复位/擦除、RTT 调试(JLinkRTTLogger/Client、环形缓冲原理)、J-Link Commander 常用命令、RAMCode did not respond 恢复。当任务提到 J-Link、JLinkExe、JLinkRTTLogger、loadfile、verifybin、erase、RAMCode timeout、N32H787、STM32H7、SWD 调试、SEGGER RTT 时使用。继电器供电/BOOT 控制见 ch340-relay 技能。
+description: J-Link 烧录与调试技能(通用 + N32H787/STM32H7 实测)。用于固件烧录/读回/复位/擦除、RTT 调试(JLinkRTTLogger/Client、环形缓冲原理)、J-Link Commander 常用命令、RAMCode did not respond 恢复、N32H7xx ISP(BOOT 接口,经 J-Link CDC UART)通讯与 RDP 切换整片擦除。当任务提到 J-Link、JLinkExe、JLinkRTTLogger、loadfile、verifybin、erase、RAMCode timeout、N32H787、STM32H7、SWD 调试、SEGGER RTT、ISP、BOOT 接口、CDC UART、回馈供电时使用。继电器供电/BOOT 控制见 ch340-relay 技能。
 ---
 
 # J-Link 烧录与调试(JLinkExe / RTT / Commander)
 
-> 主文档:工程内《JLink烧录流程与技术细节-20260818.md》(N32H787 详细);本技能为跨芯片速查 + 实测记录。
+> 本技能为跨芯片速查 + 实测记录;烧录前提与继电器配合见 ch340-relay 技能。
 
 ## 0. 环境与设备名
 
@@ -124,8 +124,6 @@ go
 ## 4. N32H787 专用(双核)
 
 - 地址:M7@`0x15000000`、M4@`0x15080000`;**先 M4 后 M7**;M4 固件用 M7 设备名烧
-- 地址表:`_estack=0x2401E000`、fault=`0x2401E800`、阶段快照=`0xC0400000`(6×10×u32=240B)、A8=`0xC0300000/0x2000`
-- 详见工程文档《JLink烧录流程与技术细节-20260818.md》与知识库 `调用JLink.md`
 
 ## 5. STM32H7 实测记录(2026-08-21)
 
@@ -149,3 +147,38 @@ go
 4. RTT host 不推进 RdOff → 环形缓冲写满 → 固件写丢弃,读数停在旧位置
 5. WSL bash `for`/`$()` 异常 —— 脚本写文件执行或逐条命令
 6. usbipd 附加丢失 → Windows 侧重新 `usbipd attach`
+7. **J-Link CDC TX 回馈供电(2026-09-05,N32H787 台架实测;CDC 特性普遍、接线时序属台架)**:J-Link CDC UART 的 **TX 是主动驱动输出**(空闲输出高电平),只要被路由到目标板 MCU 引脚(经继电器/直连),即使目标板 5V 已断,TX 的 3.3V 仍会经芯片引脚保护二极管向目标板倒灌(回馈供电)。后果(全部实测复现):目标板"断电"失效、POR 从未发生、BOOT 采样时序失效;芯片卡在半供电未定义态——SWD 持续 `Failed to power up DAP`、ISP 无响应,换速率/重新附加 USB/其它复位组合均救不回来。**通用原则:凡是把 CDC UART 接到目标板的场景,目标断电/上下电期间必须把 UART 路由断开,通讯前才接通,用完即断**;J-Link 的 `VTref` 只是采样线,反映不了目标板真实供电状态。本台架的具体通道时序见 §7
+8. **楔死 AP 的回显假象(2026-09-05,N32H787 实测)**:链路劣化时总线读"成功"但内容是固定重复模式(`19E01FF0`/`A05F0000`/全 FF),连 CPUID、RAM、CoreSight ROM 表都读成同模式——这是 AP 楔死 fail-open/回显,**不是真实数据**:
+   - 全 FF ≠ 已擦除!擦除结论必须来自健康链路(读回 CPUID=0x411FC272、RAM 有真实内容交叉验证)或硬件侧证据(如 ISP CRC 校验);
+   - N32 设备库在此状态下会误报"Active read/write protected device"并触发无意义的 auto-unsecure;
+   - V8.92 N32H787 设备库 InitTarget 自身有缺陷(prepare target CPU 必失败,且不使用默认 under-reset 重试),绕过方法:`-JLinkScriptFile` 提供 `int InitTarget(void){return 0;}` 覆盖后走默认附加路径(可附加,但 Flash RAMCode 加载仍可能失败,烧录/擦除建议走 ISP)
+
+## 7. N32H7xx ISP(BOOT 接口,经 J-Link CDC UART,2026-09-05 实测全链路)
+
+物理接口:USART1(PA9=MCU TX,PA10=MCU RX),路由到 J-Link CDC UART(WSL 侧 `/dev/ttyACM0`,即 J-Link 的 VCOM)。
+
+**本测试台架(N32H787 台架,CH1=主板供电/CH2=BOOT/CH3+CH4=CDC UART↔PA9/PA10 路由)的通道时序**——成败关键,因为 CDC TX 回馈供电会废掉 CH1 的断电能力(见 §6 坑 #7):
+`CH3/CH4 off → CH2 on(BOOT) → CH1 断电 3s → CH1 on → CH2 off → CH3/CH4 on → 探测 ISP`,用完 CH3/CH4 恢复 off。其它台架若把 CDC UART 常闭直连目标板,断电期间同样会被倒灌,需等效的断开手段。
+
+协议要点(依据 Nations 官方《CN_UG_N32H7xx_Series_BOOT_Interface_Instruction_User_Guide_V1.0.0》;配套 `isp*.py` 工具脚本不随本技能分发):
+- 帧格式(host→boot):`AA 55 | CMD_H CMD_L | LEN[0] LEN[1] | Par[0..3] | DAT... | XOR`,XOR=前面全部字节异或;响应在 DAT 后多 2 字节状态 CR1/CR2,`A0 00`=成功,`B0 00`=失败,`B0 21`=地址错,`B0 20`=长度错,`B0 10`=CRC 错
+- **Par 固定 4 字节,不用的命令也要补 `00 00 00 00`**,漏发会导致解析器失步、后续全部无响应(实测踩过)
+- 上电初始波特率固定 9600,`CMD_SET_BR`(0x01 0x00,Par=波特率码 LE,如 0x0001C200=115200)可提速
+- 常用命令:GET_INF `10 00`(返回 29B:系列 0x0A、UCID、DBGMCU_IDCODE)、KEY_RNG `20 00`(**CRC 校验前必须先调**)、FLASH_DWNLD `31 00`(16B 整数倍≤128B+4B CRC32)、DATA_CRC_CHECK `32 00`(Par=期望 CRC32,DAT=起始地址+长度)、OPT_RW `40 00/01`(读/写选项字节)、SYS_RESET `50 00`、APP_GO `51 00`。**没有读 Flash 命令**——备份仍需 SWD
+- CRC32 算法:输入字节位反转、多项式 0x04C11DB7 MSB-first、输出位反转、终值异或 0xFFFFFFFF,初值 0xFFFFFFFF(实测与硬件一致);擦除验证即比对"全 FF 数据的 CRC"
+- 选项字节:RDP Par=0x00000001(DAT 0=L0/1=L1/2=L2,**L2 不可逆,绝不可写**)、WRP Par=0x00000002(每 bit 对应 128KB,bit0=0x15000000~)、BOOTADDR_M7/M4 Par=0x00000003/04
+
+**整片擦除配方(ISP,实测有效)**:无独立擦除命令,用 RDP 切换触发硬件 mass erase:
+1. 读 RDP 确认当前等级(L0→做步骤 2 的升档;若已是 L1 直接做步骤 3)
+2. 写 RDP=1(0x40 0x01,Par=01000000,DAT=[01])→ SYS_RESET
+3. 重新进 BOOT → 写 RDP=0(L1→L0 解锁+mass erase)→ SYS_RESET
+4. 重新进 BOOT → KEY_RNG → DATA_CRC_CHECK 比对全 FF CRC(实测 512KB bank 通过;4MB 全片范围报 `B0 21` 地址错——本型号实际容量小于 WRP bit31 映射上限,分段验证即可)
+5. 旁证:WRP/BTM 选项字节读数恢复为 0xFF...F(出厂默认)
+
+### 7.1 N32H787 显示调试寄存器地图(2026-09-06 实测,SWD 恢复后可直接用)
+
+来源:Nations 官方设备库(N32Cube/Nations.N32H7xx_Library.1.2.0.zip)中的 CMSIS `device/n32h7xx.h`。PERIPH_BASE=0x40000000:
+- GPIO 基址 = AHB5 = 0x58030000:GPIOB=+0x2C00→`0x58032C00`,GPIOH=+0x4400→`0x58034400`;寄存器偏移:PMODE=0x00、**PID(输入)=0x10、POD(输出)=0x14**、PBSC=0x18(具体引脚分配随目标板原理图而定,此处不记录)
+- DSI_HOST_BASE = APB6 = `0x50000000`:**STS=+0x03C**、**ERRSTS=+0x040**(bit0 ECCSERR/1 ECCMERR/[6:2]ECCERRBIT/7 CRCERR/8 HTXTOERR/9 LRXTOERR/10 BATTOERR)、VID_EN=+0x200、VID_STD=+0x224、**VID_VC(垂直计数,+0x24C,连读两次应递增)**、DSI_PKTSTS=+0x28C
+- D-PHY wrapper = `0x5004AC00`(WRPSTS 等)
+- ⚠️ 实测:**空片(擦除后)或显示子系统运行中,SWD 附加失败(AP 枚举正常但 CPUID 必死,WSL/Windows 两套主机栈一致)**——读寄存器要赶在上电后显示初始化前的窗口,或先经 ISP 烧回固件并复位

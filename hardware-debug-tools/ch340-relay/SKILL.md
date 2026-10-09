@@ -46,7 +46,7 @@ description: CH340 四路继电器(LCUS 兼容模块)控制技能。用于经 US
 ## 实测注意(踩过的坑)
 
 1. **反馈帧可能错位/超时(实测复现率高)**:`--read-feedback` 偶尔报 `feedback frame must be exactly 4 bytes`,或读到上一个通道/上一条命令的**残留反馈**(帧格式与校验和均合法但状态过期,如发 `off` 却读到 `on`)——命令帧已正确发出(输出 `sent ...` 即已入串口),**以实际状态为准**,用 `query --read-feedback` 重试确认。
-2. **CH1 断电不彻底(本项目实测)**:CH1 off 后 J-Link `VTref` 仍 ≈3.26V——主板有反向供电/其他电源路径,CH1 off/on **不是完整 POR**,不要依赖它做"真断电重启"(详见 jlink-flash / 调用JLink.md §9)。
+2. **CH1 断电不彻底(本项目实测)**:CH1 off 后 J-Link `VTref` 仍 ≈3.26V——主板有反向供电/其他电源路径,CH1 off/on **不是完整 POR**,不要依赖它做"真断电重启"(详见 `jlink-flash` 技能常见坑)。
 3. **`query` 默认不读反馈**:不带 `--read-feedback` 只发查询帧,不返回状态。
 4. **继电器重启(拔插 USB)后默认全部 off**;且 usbipd 附加可能丢失(`/dev/ttyUSB0` 消失),需在 Windows 侧重新 `usbipd attach`。
 5. **串口独占**:同一时刻只允许一个进程打开该串口。
@@ -56,6 +56,7 @@ description: CH340 四路继电器(LCUS 兼容模块)控制技能。用于经 US
 
 - 烧录前状态:CH2 off + CH1 on。
 - 若要硬件级复位替代 `noreset`:用空闲通道(CH3/CH4)接 MCU `NRST`——NRST 低电平期间连接 SWD(connect-under-reset),释放后立即 halt;原理与条件详见 `jlink-flash` 技能(RAMCode 恢复章节)。
+- 本测试台架把 CH3/CH4 用作 J-Link CDC UART ↔ 主板 PA9/PA10 路由(ISP 通讯)时,存在 J-Link CDC TX 回馈供电问题,通道开闭时序必须遵守特定顺序——该坑属 J-Link CDC 普遍问题+本台架接线,详见 `jlink-flash` 技能 §7(通用继电器技能不含此约束)。
 
 ## 参考
 

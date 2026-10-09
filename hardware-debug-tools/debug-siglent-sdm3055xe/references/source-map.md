@@ -2,13 +2,10 @@
 
 ## Local evidence and implementation sources
 
-- Specification: `specs/debug-siglent-sdm3055xe.md`
-- Reusable WinUSB/USBTMC reference: 可复用脚本 `rigol_winusb_usbtmc.ps1`
-- Existing WinUSB/USBTMC notes: 既有笔记《MSO5072_Windows驱动与调试经验-20260812.md》
 - Current probe: `scripts/sdm3055x_e_probe.ps1`（本技能目录）
 - Current device enumeration source: `usbipd list` and Windows registry `HKLM:\SYSTEM\CurrentControlSet\Enum\USB\VID_F4EC&PID_1202`（易变，运行时动态发现）
 
-The RIGOL script is transport reference only. Its hardcoded DHO914S path and MSO5072 identifiers must not be reused for SDM3055X-E.
+A RIGOL WinUSB/USBTMC transport script exists elsewhere as reference only. Its hardcoded DHO914S path and MSO5072 identifiers must not be reused for SDM3055X-E.
 
 ## Official sources
 

@@ -28,12 +28,12 @@ Windows usbipd list
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\scripts\sdm3055x_e_probe.ps1 -Status
+  -File .\scripts\sdm3055x_e_probe.ps1 -BusId <x-x> -Status
 ```
 
 探针会：
 
-1. 解析当前 `usbipd list`，要求 `6-4 / f4ec:1202 / SDM3055X-E / Not shared`。
+1. 解析当前 `usbipd list`，要求 `<x-x> / f4ec:1202 / SDM3055X-E / Not shared`(`x-x` 为本次实际 BUSID，脚本经 `-BusId` 显式传入)。
 2. 从 Windows USB 注册表动态发现 `WinUSB` 服务、实例和 `DeviceInterfaceGUIDs`。
 3. 打开设备接口，查询 USB 接口并寻找 bulk IN/OUT 端点。
 4. 串行发送 USBTMC `DEV_DEP_MSG_OUT` 和查询用 `REQUEST_DEV_DEP_MSG_IN`。
@@ -57,7 +57,7 @@ FUNC?
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\scripts\sdm3055x_e_probe.ps1 -Query 'READ?' -AllowMeasure
+  -File .\scripts\sdm3055x_e_probe.ps1 -BusId <x-x> -Query 'READ?' -AllowMeasure
 ```
 
 `READ?` 会启动一次测量并影响仪器读数缓存，因此不属于默认只读状态集。其结果必须带上当前功能、量程、接线和时间戳解释。

@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$BusId = "6-3",
+    [string]$BusId = "",
     [string]$VidPid = "f4ec:1202",
     [string]$DeviceName = "SDM3055X-E",
     [string[]]$Query = @(),
@@ -13,6 +13,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+
+if ([string]::IsNullOrWhiteSpace($BusId)) {
+    throw "BusId is required: read the current bus id from 'usbipd list' and pass -BusId <x-x>. Never assume a previous value; BUSID changes with replug/report."
+}
 
 $script:SafeQueries = @("*IDN?", "SYST:ERR?", "CONF?", "FUNC?", "*STB?")
 $script:MeasureQueries = @("READ?")

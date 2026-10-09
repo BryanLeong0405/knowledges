@@ -28,7 +28,7 @@ usbipd list
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\scripts\it6722a_usbtmc_probe.ps1 -Status
+  -File .\scripts\it6722a_usbtmc_probe.ps1 -BusId <x-x> -Status
 ```
 
 探针会动态完成：
@@ -76,7 +76,7 @@ MEAS:POW?  -> 0
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\scripts\it6722a_usbtmc_probe.ps1 -RemoteProbe -Query '*IDN?'
+  -File .\scripts\it6722a_usbtmc_probe.ps1 -BusId <x-x> -RemoteProbe -Query '*IDN?'
 ```
 
 该模式严格执行：
@@ -94,7 +94,7 @@ SYST:LOC      # finally 恢复本地
 - 不发送 `VOLT <value>`、`CURR <value>`、`OUTP ON`、`*RST`、`*CLS`。
 - 不发送 OVP/OCP、LIST、触发、存储、校准或系统配置写命令。
 - 不安装/切换/卸载驱动，不自动 `usbipd attach/detach`。
-- 不把 USBTMC 设备当成 COM87 CH340；RS232/CH340 是另一条物理接口路径。
+- 不把 USBTMC 设备当成 CH340 串口(COMx);RS232/CH340 是另一条物理接口路径。
 - 不与 VISA、厂商软件或其他 Agent 并发访问；WinUSB 设备必须单进程串行使用。
 
 ## 错误处理和证据
