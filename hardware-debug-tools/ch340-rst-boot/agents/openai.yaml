@@ -1,0 +1,4 @@
+interface:
+  display_name: "CH340 RST/BOOT 控制器"
+  short_description: "CH340 DTR/RTS 控制 BOOT/RESET:bootloader 进下载模式、app 复位跑应用,双系统(WSL/Windows)"
+  default_prompt: "Use $ch340-rst-boot to put an ESP into or out of ROM download mode via the CH340 RST/BOOT controller (uart_boot_control.py: DTR->BOOT, RTS->RESET). Always pass the control port explicitly (-p /dev/ttyUSBx on WSL, -p COMx on Windows) and discriminate the port first (RTS-hold silence test / esptool --before no_reset on the data port)."

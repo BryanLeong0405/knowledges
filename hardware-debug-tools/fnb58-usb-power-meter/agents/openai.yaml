@@ -1,0 +1,4 @@
+interface:
+  display_name: "FNB58 电压电流表"
+  short_description: "FNIRSI FNB58 USB 电压电流表 HID 双端控制:100Hz 采集、CRC8 协议、CSV 记录与 HTTP 控制台"
+  default_prompt: "Use $fnb58-usb-power-meter to read measurements from a FNIRSI FNB58 USB power meter over HID on a Windows + WSL2 host: locate it by VID 2e3c:5558 with usbipd, switch ownership with attach/detach, grant /dev/hidraw* access in WSL, then run check/once/monitor or serve the fnb58.html dashboard at 127.0.0.1:8423."

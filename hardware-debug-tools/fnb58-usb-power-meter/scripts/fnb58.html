@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FNB58 USB 电压电流表控制台</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121821;
+    --panel2: #0e141c;
+    --line: #223046;
+    --text: #d8e2ee;
+    --dim: #7d8fa5;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --orange: #fb923c;
+    --red: #f87171;
+    --violet: #c084fc;
+    --mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    color-scheme: dark;
+    padding: 14px 16px 24px;
+    max-width: 1060px; margin: 0 auto;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 18px; margin: 0 8px 0 0; letter-spacing: 1px; }
+  h1 .sub { font-size: 12px; color: var(--dim); font-weight: normal; margin-left: 6px; }
+  .conn { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+  input, button, select {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; padding: 5px 9px;
+  }
+  input[type=text] { font-family: var(--mono); width: 190px; }
+  input:focus { outline: 1px solid var(--accent); }
+  button { cursor: pointer; transition: filter .12s; }
+  button:hover { filter: brightness(1.25); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #0c4a6e; border-color: #0284c7; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #475569; display: inline-block; }
+  .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.err { background: var(--red); }
+  .badge {
+    font-family: var(--mono); font-size: 12px; padding: 2px 8px;
+    border: 1px solid var(--line); border-radius: 20px; color: var(--dim);
+  }
+  .badge.ok  { color: var(--green); border-color: var(--green); }
+  .badge.err { color: var(--red); border-color: var(--red); }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-top: 14px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px 12px;
+  }
+  .card .lbl { font-size: 12px; color: var(--dim); letter-spacing: 1px; }
+  .card .val {
+    font-family: var(--mono); font-size: 34px; line-height: 1.25;
+    margin-top: 2px; white-space: nowrap;
+  }
+  .card .val small { font-size: 15px; color: var(--dim); margin-left: 4px; }
+  .card.v .val { color: var(--green); }
+  .card.i .val { color: var(--orange); }
+  .card.p .val { color: var(--accent); }
+  .card.t .val { color: var(--text); font-size: 28px; }
+  .subrow {
+    grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 18px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 14px; font-family: var(--mono); font-size: 14px;
+  }
+  .subrow b { color: var(--dim); font-weight: normal; font-family: inherit; }
+  .subrow .dp { color: var(--violet); }
+  .subrow .dn { color: var(--violet); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    margin-top: 12px; padding: 10px 12px;
+  }
+  .panel .head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 8px; font-size: 13px; color: var(--dim);
+  }
+  .panel .head .sp { margin-left: auto; }
+  .chk { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
+  .chk input { width: auto; accent-color: var(--accent); }
+  .chk .k { font-family: var(--mono); font-size: 12px; }
+  .chk .kv { color: var(--green); }
+  .chk .ki { color: var(--orange); }
+  .chk .kd { color: var(--violet); }
+  .chk .kt { color: var(--red); }
+  #chart { width: 100%; height: 300px; display: block; }
+  .win.active { border-color: var(--accent); color: var(--accent); }
+
+  table.stats { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+  table.stats th, table.stats td { padding: 4px 8px; text-align: right; }
+  table.stats th { color: var(--dim); font-weight: normal; text-align: left; }
+  table.stats td { color: var(--text); }
+  table.stats tr:nth-child(odd) { background: var(--panel2); }
+  .devinfo { font-family: var(--mono); font-size: 12px; color: var(--dim); margin-top: 8px; word-break: break-all; }
+  .devinfo .err { color: var(--red); }
+  footer { margin-top: 14px; font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>FNB58 电压电流表<span class="sub">FNIRSI · HID · 100Hz</span></h1>
+  <div class="conn">
+    <span class="dot" id="dot"></span>
+    <span class="badge" id="badge">未连接</span>
+    <input type="text" id="url" placeholder="http://127.0.0.1:8423">
+    <button id="btnConn" class="primary">连接</button>
+    <button id="btnPause">暂停曲线</button>
+    <button id="btnReset">重置统计</button>
+    <button id="btnCsv">导出CSV</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card v"><div class="lbl">电压 VOLTAGE</div><div class="val"><span id="v">--</span><small>V</small></div></div>
+  <div class="card i"><div class="lbl">电流 CURRENT</div><div class="val"><span id="i">--</span><small>A</small></div></div>
+  <div class="card p"><div class="lbl">功率 POWER</div><div class="val"><span id="p">--</span><small>W</small></div></div>
+  <div class="card t"><div class="lbl">板载温度 TEMP</div><div class="val"><span id="t">--</span><small>°C</small></div></div>
+  <div class="subrow">
+    <span><b>D+</b> <span class="dp" id="dp">--</span> V</span>
+    <span><b>D−</b> <span class="dn" id="dn">--</span> V</span>
+    <span><b>协议特征</b> <span id="dpsig">--</span></span>
+    <span><b>采样率</b> <span id="rate">--</span> Hz</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="head">
+    <span>实时曲线（后端 20 点/秒）</span>
+    <span class="sp"></span>
+    <label class="chk"><input type="checkbox" id="ckV" checked><span class="k kv">V</span></label>
+    <label class="chk"><input type="checkbox" id="ckI" checked><span class="k ki">I</span></label>
+    <label class="chk"><input type="checkbox" id="ckD"><span class="k kd">D+/D−</span></label>
+    <label class="chk"><input type="checkbox" id="ckT"><span class="k kt">T</span></label>
+    <button class="win active" data-min="1">1分</button>
+    <button class="win" data-min="2">2分</button>
+    <button class="win" data-min="5">5分</button>
+  </div>
+  <canvas id="chart"></canvas>
+</div>
+
+<div class="panel">
+  <div class="head">会话统计（自上次重置；列 = min / avg / max）</div>
+  <table class="stats">
+    <tr><th>电压 V</th><td id="svMin">--</td><td id="svAvg">--</td><td id="svMax">--</td></tr>
+    <tr><th>电流 A</th><td id="siMin">--</td><td id="siAvg">--</td><td id="siMax">--</td></tr>
+    <tr><th>峰值功率 W</th><td id="spMax">--</td><td></td><td></td></tr>
+    <tr><th>累计电能 Wh</th><td id="sWh">--</td><td></td><td></td></tr>
+    <tr><th>累计容量 mAh</th><td id="sMah">--</td><td></td><td></td></tr>
+    <tr><th>采样数 / 时长</th><td id="sN">--</td><td id="sT">--</td><td></td></tr>
+  </table>
+  <div class="devinfo" id="devinfo"></div>
+</div>
+
+<footer>FNB58 经本机 <code>python fnb58_control.py serve</code> 后端取数（默认 127.0.0.1:8423）；量程 4~28V / 7A，PC 联机口供电兼通信。曲线坐标左轴=电压/D±/温度，右轴=电流。</footer>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const URLKEY = 'fnb58Url';
+$('url').value = localStorage.getItem(URLKEY) || 'http://127.0.0.1:8423';
+
+const S = {
+  running: false, timer: null, paused: false,
+  seq: 0, points: [],          // [seq, t, v, i, p, dp, dn, temp]（t 为后端时钟秒）
+  windowMin: 1, failCnt: 0
+};
+
+function setBadge(state, text) {
+  $('dot').className = 'dot' + (state === 'ok' ? ' on' : state === 'err' ? ' err' : '');
+  $('badge').className = 'badge' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+  $('badge').textContent = text;
+}
+
+function fmt(x, d) { return x == null ? '--' : Number(x).toFixed(d); }
+
+function dpsig(dp, dn) {
+  if (dp == null) return '--';
+  const t = [[2.7, 2.7, 'Apple 2.4A'], [2.0, 2.0, 'Samsung'], [1.2, 1.2, 'Apple 1A'],
+             [0.6, 0.6, 'DCP'], [0.5, 2.7, 'DCP+Apple'], [0.5, 0.5, 'DCP(短接)']];
+  for (const [a, b, name] of t)
+    if (Math.abs(dp - a) < 0.25 && Math.abs(dn - b) < 0.25) return name;
+  return dp < 0.3 && dn < 0.3 ? '无信号' : '其它/私有';
+}
+
+function applyData(d) {
+  setBadge(d.state === 'ok' ? 'ok' : 'err',
+           d.state === 'ok' ? '已连接' : d.state === 'waiting' ? '等待设备' : '设备错误');
+  if (d.latest) {
+    const [, t, v, i, p, dp, dn, temp] = d.latest;
+    $('v').textContent = fmt(v, 5); $('i').textContent = fmt(i, 5);
+    $('p').textContent = fmt(p, 5); $('t').textContent = fmt(temp, 1);
+    $('dp').textContent = fmt(dp, 3); $('dn').textContent = fmt(dn, 3);
+    $('dpsig').textContent = dpsig(dp, dn);
+  }
+  $('rate').textContent = d.rate != null ? d.rate : '--';
+  const st = d.stats || {};
+  $('svMin').textContent = fmt(st.v_min, 5); $('svAvg').textContent = fmt(st.v_avg, 5);
+  $('svMax').textContent = fmt(st.v_max, 5);
+  $('siMin').textContent = fmt(st.i_min, 5); $('siAvg').textContent = fmt(st.i_avg, 5);
+  $('siMax').textContent = fmt(st.i_max, 5);
+  $('spMax').textContent = fmt(st.p_max, 5);
+  $('sWh').textContent = fmt(st.wh, 4); $('sMah').textContent = fmt(st.mah, 2);
+  $('sN').textContent = st.n != null ? st.n : '--';
+  $('sT').textContent = st.elapsed != null ? fmt(st.elapsed, 1) + ' s' : '--';
+  const di = $('devinfo');
+  if (d.error) di.innerHTML = '<span class="err">错误: ' + d.error + '</span>';
+  else if (d.info && d.info.serial)
+    di.textContent = '设备: ' + d.info.product + '  SN=' + d.info.serial +
+                     '  ' + (d.info.bcd || '') + '  ...' + (d.info.path || '');
+  else di.textContent = '';
+}
+
+function poll() {
+  const base = $('url').value.replace(/\/+$/, '');
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 3000);
+  fetch(base + '/api/history?since=' + S.seq, { signal: ctl.signal })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(d => {
+      clearTimeout(to); S.failCnt = 0;
+      if (!S.paused) {
+        for (const p of d.points || []) S.points.push(p);
+        const cutoff = (d.points && d.points.length ? d.points[d.points.length - 1][1] : 0) - 310;
+        while (S.points.length && S.points[0][1] < cutoff) S.points.shift();
+      }
+      S.seq = d.seq || S.seq;
+      applyData(d);
+      draw();
+    })
+    .catch(() => {
+      clearTimeout(to);
+      if (++S.failCnt >= 2) setBadge('err', '后端不可达');
+    });
+}
+
+function connect() {
+  localStorage.setItem(URLKEY, $('url').value.trim());
+  if (S.timer) clearInterval(S.timer);
+  S.running = true; S.failCnt = 0;
+  setBadge('', '连接中…');
+  poll();
+  S.timer = setInterval(poll, 250);
+}
+
+$('btnConn').onclick = connect;
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+$('btnPause').onclick = () => {
+  S.paused = !S.paused;
+  $('btnPause').textContent = S.paused ? '继续曲线' : '暂停曲线';
+  $('btnPause').style.borderColor = S.paused ? 'var(--accent)' : '';
+};
+$('btnReset').onclick = () => {
+  const base = $('url').value.replace(/\/+$/, '');
+  fetch(base + '/api/reset', { method: 'POST' }).then(() => { S.points = []; draw(); });
+};
+$('btnCsv').onclick = () => {
+  const base = $('url').value.replace(/\/+$/, '');
+  window.open(base + '/api/csv', '_blank');
+};
+document.querySelectorAll('.win').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.win').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  S.windowMin = +b.dataset.min; draw();
+});
+['ckV', 'ckI', 'ckD', 'ckT'].forEach(id => $(id).onchange = draw);
+
+const cv = $('chart'), ctx = cv.getContext('2d');
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const L = 52, R = 52, T = 10, B = 22;
+  const pw = W - L - R, ph = H - T - B;
+  if (pw < 10 || ph < 10) return;
+
+  const now = S.points.length ? S.points[S.points.length - 1][1] : 0;
+  const t0 = now - S.windowMin * 60;
+  const pts = S.points.filter(p => p[1] >= t0 - 1);
+  const cs = { v: $('ckV').checked, i: $('ckI').checked, d: $('ckD').checked, t: $('ckT').checked };
+
+  const fam = [];   // 左轴电压族
+  if (cs.v) fam.push({ k: 2, c: '#4ade80' });
+  if (cs.d) fam.push({ k: 5, c: '#c084fc' }, { k: 6, c: '#a78bfa' });
+  if (cs.t) fam.push({ k: 7, c: '#f87171' });
+  let lo = Infinity, hi = -Infinity, ilo = Infinity, ihi = -Infinity;
+  for (const p of pts) {
+    for (const f of fam) { lo = Math.min(lo, p[f.k]); hi = Math.max(hi, p[f.k]); }
+    if (cs.i) { ilo = Math.min(ilo, p[3]); ihi = Math.max(ihi, p[3]); }
+  }
+  if (!isFinite(lo)) { lo = 0; hi = 1; }
+  if (!isFinite(ilo)) { ilo = 0; ihi = 1; }
+  if (hi - lo < 0.05) { const m = (hi + lo) / 2; lo = m - 0.025; hi = m + 0.025; }
+  if (ihi - ilo < 0.005) { const m = (ihi + ilo) / 2; ilo = m - 0.0025; ihi = m + 0.0025; }
+  lo -= (hi - lo) * 0.08; hi += (hi - lo) * 0.08;
+  ilo -= (ihi - ilo) * 0.08; ihi += (ihi - ilo) * 0.08;
+
+  const X = t => L + (t - t0) / (now - t0 + 0.001) * pw;
+  const Y = v => T + (1 - (v - lo) / (hi - lo)) * ph;
+  const Yi = v => T + (1 - (v - ilo) / (ihi - ilo)) * ph;
+
+  // 网格与左轴刻度
+  ctx.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let g = 0; g <= 4; g++) {
+    const y = T + g / 4 * ph;
+    ctx.strokeStyle = 'rgba(34,48,70,.55)'; ctx.beginPath();
+    ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+    ctx.fillStyle = '#7d8fa5';
+    ctx.fillText((hi - (hi - lo) * g / 4).toFixed(hi - lo > 20 ? 1 : 3), L - 5, y);
+  }
+  // 右轴刻度(电流)
+  ctx.textAlign = 'left';
+  for (let g = 0; g <= 4; g++) {
+    const y = T + g / 4 * ph;
+    ctx.fillStyle = 'rgba(251,146,60,.9)';
+    ctx.fillText((ihi - (ihi - ilo) * g / 4).toFixed(3), L + pw + 5, y);
+  }
+  // 时间轴
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const winSec = S.windowMin * 60;
+  for (let g = 0; g <= 6; g++) {
+    const x = L + g / 6 * pw;
+    ctx.fillStyle = '#7d8fa5';
+    const sec = Math.round(-winSec * (1 - g / 6));
+    ctx.fillText(sec === 0 ? 'now' : sec + 's', x, T + ph + 5);
+  }
+
+  const line = (k, color, yfn) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.beginPath();
+    let started = false;
+    for (const p of pts) {
+      const x = X(p[1]), y = yfn(p[k]);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  };
+  for (const f of fam) line(f.k, f.c, Y);
+  if (cs.i) line(3, '#fb923c', Yi);
+
+  // 图例
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  let lx = L + 6;
+  const legend = [];
+  if (cs.v) legend.push(['V', '#4ade80']);
+  if (cs.i) legend.push(['I(右轴)', '#fb923c']);
+  if (cs.d) legend.push(['D+', '#c084fc'], ['D−', '#a78bfa']);
+  if (cs.t) legend.push(['T', '#f87171']);
+  for (const [name, color] of legend) {
+    ctx.fillStyle = color; ctx.fillRect(lx, T + 4, 10, 3);
+    ctx.fillStyle = '#d8e2ee'; ctx.fillText(name, lx + 14, T + 1);
+    lx += 24 + ctx.measureText(name).width + 14;
+  }
+}
+
+window.addEventListener('resize', draw);
+connect();   // 默认自动连上次地址
+</script>
+</body>
+</html>
